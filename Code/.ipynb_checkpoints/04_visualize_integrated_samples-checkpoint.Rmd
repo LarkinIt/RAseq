@@ -1,0 +1,111 @@
+---
+title: "Visualize Samples"
+# author: "Vignette Author"
+date: "`r Sys.Date()`"
+output: rmarkdown::pdf_document
+vignette: >
+  %\VignetteIndexEntry{Preprocessing-and-Filtering}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+library(formatR)
+library(knitr)
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  tidy.opts = list(width.cutoff = 70), tidy = TRUE,
+  linewidth = 70
+)
+```
+
+# Overview
+Read in scRNA-seq data:
+
+* **The goal is to visualize RA samples**  
+
+The sections below outline:
+
+1. Set wd and output directory, load data
+
+# Load Libraries
+```{r}
+# Load required libraries
+library(Seurat)
+library(Matrix)
+library(dplyr)
+library(ggplot2)
+```
+
+# Set output dir and load seurat data
+```{r}
+seurat_f <- "/ix/djishnu/Aaron_F/RA/Results/EMATB8322/integrated_samples/integrated_seurat_DimReduced_and_Clustered.rds"
+# Set your data directory path
+out_dir <- "/ix/djishnu/Aaron_F/RA/Results/EMATB8322/integrated_samples/figs"
+dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+setwd(out_dir)
+
+seurat_obj <- LoadSeuratRds(seurat_f)
+
+```
+
+# Visualize
+```{r}
+# Step 3: Visualize the results
+# UMAP plot colored by clusters
+pdf("cluster_umap.pdf")
+p1 <- DimPlot(seurat_obj, 
+              reduction = "umap", 
+              group.by = "seurat_clusters",
+              label = TRUE, 
+              label.size = 4) +
+  ggtitle("UMAP - Clusters (First 12 PCs)")
+
+p2 <- DimPlot(seurat_obj, 
+                reduction = "umap", 
+                group.by = "group") +
+    ggtitle("UMAP - Group")
+
+p3 <- DimPlot(seurat_obj, 
+                reduction = "umap", 
+                group.by = "cohort") +
+    ggtitle("UMAP - Cohort")
+
+print(p1)
+print(p2)
+print(p3)
+dev.off()
+```
+
+# Visualize features
+```{r}
+# Set to RNA assay for gene expression
+DefaultAssay(seurat_obj) <- "RNA"
+
+pdf("myeloid_features_umap.pdf")
+
+# Page 1: Cluster plot
+p1 <- DimPlot(seurat_obj, 
+              reduction = "umap", 
+              group.by = "seurat_clusters",
+              label = TRUE, 
+              label.size = 4) +
+  ggtitle("UMAP - Clusters (First 12 PCs)")
+print(p1)
+
+# Pages 2-6: Individual gene plots (one per page)
+genes <- c("CD14", "MARCO", "LYZ", "ITGAM", "FCGR1A")
+
+for(gene in genes) {
+  p <- FeaturePlot(seurat_obj,
+                   features = gene,
+                   reduction = "umap",
+                   pt.size = 0.5,
+                   order = TRUE) +
+    ggtitle(paste("Expression of", gene))
+  print(p)
+}
+
+dev.off()
+```
